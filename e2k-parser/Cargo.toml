@@ -4,3 +4,20 @@ version = "0.1.0"
 edition = "2024"
 
 [dependencies]
+# Use workspace dependencies
+serde = { workspace = true }
+serde_json = { workspace = true }
+anyhow = { workspace = true }
+thiserror = { workspace = true }
+
+# Parser specific
+nom = { workspace = true }
+encoding_rs = { workspace = true }
+regex = { workspace = true }
+
+[dev-dependencies]
+pretty_assertions = "1.4"
+
+[lib]
+name = "e2k_parser"
+path = "src/lib.rs"

@@ -12,9 +12,17 @@
   "app": {
     "windows": [
       {
-        "title": "etabextension",
-        "width": 800,
-        "height": 600
+        "label": "main",
+        "title": "EtabExtension",
+        "width": 1280,
+        "height": 800,
+        "minWidth": 1024,
+        "minHeight": 640,
+        "resizable": true,
+        "fullscreen": false,
+        "center": true,
+        "decorations": true,
+        "transparent": false
       }
     ],
     "security": {
@@ -30,6 +38,9 @@
       "icons/128x128@2x.png",
       "icons/icon.icns",
       "icons/icon.ico"
+    ],
+    "externalBin": [
+      "./bin"
     ]
   }
 }
