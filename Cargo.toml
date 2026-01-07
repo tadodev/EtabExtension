@@ -1,0 +1,15 @@
+# Root Cargo.toml (workspace configuration)
+[workspace]
+members = [
+    "src-tauri",
+    "e2k-parser"
+]
+
+resolver = "2"
+
+[workspace.dependencies]
+# Shared dependencies across workspace members
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+anyhow = "1.0"
+thiserror = "2.0.17"
