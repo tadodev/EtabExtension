@@ -40,7 +40,7 @@
       "icons/icon.ico"
     ],
     "externalBin": [
-      "./bin"
+      "bin/etabextension-cli"
     ]
   }
 }
