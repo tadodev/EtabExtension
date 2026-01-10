@@ -1,5 +1,4 @@
 import { useState, useRef } from "react";
-import reactLogo from "./assets/react.svg";
 import { invoke } from "@tauri-apps/api/core";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -9,7 +8,7 @@ import ReactECharts from "echarts-for-react";
 
 // --- NEW IMPORTS FOR THREE.JS ---
 import { Canvas, useFrame } from "@react-three/fiber";
-import { OrbitControls, Stage, Grid, Environment } from "@react-three/drei";
+import { OrbitControls, Grid, Environment } from "@react-three/drei";
 // --------------------------------
 // TanStack Table & Virtual Imports
 import {
@@ -30,7 +29,6 @@ import {
   Zap, 
   Package, 
   GitBranch,
-  ChevronRight,
   Play,
   BarChart3,
   Copy,
@@ -83,9 +81,9 @@ function BuildingModel() {
   const meshRef = useRef(null);
   
   // Rotate the building slowly
-  useFrame((state, delta) => {
+  useFrame((_state, delta) => {
     if (meshRef.current) {
-      meshRef.current.rotation.y += delta * 0.2;
+      (meshRef.current as any).rotation.y += delta * 0.2;
     }
   });
 
