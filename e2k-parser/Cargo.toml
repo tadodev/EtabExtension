@@ -14,7 +14,7 @@ thiserror = { workspace = true }
 nom = { workspace = true }
 encoding_rs = { workspace = true }
 regex = { workspace = true }
-
+chrono = {workspace = true}
 [dev-dependencies]
 pretty_assertions = "1.4"
 
