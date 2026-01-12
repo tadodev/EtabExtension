@@ -1,3 +1,9 @@
+use crate::model::geometry::*;
+use crate::model::structural::*;
+use crate::model::loading::*;
+use crate::model::analysis::*;
+use crate::model::design::*;
+
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct E2KModel {
@@ -37,3 +43,4 @@ pub struct E2KModel {
     pub design_preferences: DesignPreferences,
     pub project_info: Option<ProjectInfo>,
 }
+
