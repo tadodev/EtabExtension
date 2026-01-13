@@ -141,26 +141,39 @@ etabextension/
 │   ├── build.rs
 │   └── tauri.conf.json          # Tauri configuration
 │
-├── e2k-parser/                   # E2K Parser Library (Rust)
-│   ├── src/
-│   │   ├── models/              # Data structures
-│   │   │   ├── mod.rs
-│   │   │   ├── point.rs         # Point (node/joint)
-│   │   │   ├── frame.rs         # Frame (beam/column)
-│   │   │   ├── material.rs      # Material properties
-│   │   │   └── load.rs          # Load cases
-│   │   ├── parser/              # Parser implementation
-│   │   │   ├── mod.rs
-│   │   │   ├── point_parser.rs
-│   │   │   ├── frame_parser.rs
-│   │   │   └── section_parser.rs
-│   │   ├── encoding.rs          # Windows-1251 handling
-│   │   ├── error.rs             # Error types
-│   │   └── lib.rs               # Public API
-│   ├── tests/
-│   │   ├── fixtures/            # Sample E2K files
-│   │   └── integration_tests.rs
-│   └── Cargo.toml
+├── crates/                       # Workspace crates
+│   ├── e2k-parser/              # E2K Parser Library (Rust)
+│   │   ├── src/
+│   │   │   ├── models/          # Data structures
+│   │   │   │   ├── mod.rs
+│   │   │   │   ├── point.rs     # Point (node/joint)
+│   │   │   │   ├── frame.rs     # Frame (beam/column)
+│   │   │   │   ├── shell.rs     # Shell elements
+│   │   │   │   ├── material.rs  # Material properties
+│   │   │   │   └── load.rs      # Load cases
+│   │   │   ├── parser/          # Parser implementation
+│   │   │   │   ├── mod.rs
+│   │   │   │   ├── point_parser.rs
+│   │   │   │   ├── frame_parser.rs
+│   │   │   │   ├── shell_parser.rs
+│   │   │   │   └── section_parser.rs
+│   │   │   ├── encoding.rs      # Windows-1251 handling
+│   │   │   ├── error.rs         # Error types
+│   │   │   └── lib.rs           # Public API
+│   │   ├── tests/
+│   │   │   ├── fixtures/        # Sample E2K files
+│   │   │   └── integration_tests.rs
+│   │   └── Cargo.toml
+│   │
+│   ├── database/                # Database layer (optional)
+│   │   ├── src/
+│   │   │   └── lib.rs
+│   │   └── Cargo.toml
+│   │
+│   └── git-service/             # Git service (optional)
+│       ├── src/
+│       │   └── lib.rs
+│       └── Cargo.toml
 │
 ├── src/                          # React frontend
 │   ├── components/
