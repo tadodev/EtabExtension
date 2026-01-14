@@ -1,0 +1,28 @@
+[package]
+name = "e2k-parser"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+# Parser specific
+nom = { workspace = true }
+regex = { workspace = true }
+encoding_rs = { workspace = true }
+serde = { workspace = true }
+serde_json = { workspace = true }
+thiserror = { workspace = true }
+anyhow = { workspace = true }
+log = { workspace = true }
+once_cell = { workspace = true }
+chrono = { workspace = true }
+
+
+[dev-dependencies]
+pretty_assertions = { workspace = true }
+proptest = { workspace = true }
+
+[lib]
+name = "e2k_parser"
+path = "src/lib.rs"
+
+
