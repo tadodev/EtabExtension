@@ -1,9 +1,8 @@
 use crate::parser::prelude::*;
 use crate::parser::*;
-use crate::parser::primitives::*;
 
 /// Parse load pattern
-fn parse_load_pattern(input: &str) -> IResult<&str, LoadPattern> {
+pub fn parse_load_pattern(input: &str) -> IResult<&str, LoadPattern> {
     let (input, _) = tag("LOADPATTERN").parse(input)?;
     let (input, _) = ws.parse(input)?;
     let (input, name) = quoted_string.parse(input)?;
@@ -25,7 +24,7 @@ fn parse_load_pattern(input: &str) -> IResult<&str, LoadPattern> {
 }
 
 /// Parse load patterns section
-fn parse_load_patterns(input: &str) -> IResult<&str, Vec<LoadPattern>> {
+pub fn parse_load_patterns(input: &str) -> IResult<&str, Vec<LoadPattern>> {
     let (input, _) = skip_ws_and_comments.parse(input)?;
     let (input, _) = tag("$ LOAD PATTERNS").parse(input)?;
     let (input, _) = line_ending.parse(input)?;
@@ -50,7 +49,7 @@ fn parse_load_patterns(input: &str) -> IResult<&str, Vec<LoadPattern>> {
 }
 
 /// Parse load case
-fn parse_load_case(input: &str) -> IResult<&str, LoadCase> {
+pub fn parse_load_case(input: &str) -> IResult<&str, LoadCase> {
     let (input, _) = tag("LOADCASE").parse(input)?;
     let (input, _) = ws.parse(input)?;
     let (input, name) = quoted_string.parse(input)?;
@@ -70,7 +69,7 @@ fn parse_load_case(input: &str) -> IResult<&str, LoadCase> {
 }
 
 /// Parse load cases section
-fn parse_load_cases(input: &str) -> IResult<&str, Vec<LoadCase>> {
+pub fn parse_load_cases(input: &str) -> IResult<&str, Vec<LoadCase>> {
     let (input, _) = skip_ws_and_comments.parse(input)?;
     let (input, _) = tag("$ LOAD CASES").parse(input)?;
     let (input, _) = line_ending.parse(input)?;

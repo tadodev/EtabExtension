@@ -1,15 +1,14 @@
 pub use nom::{
     IResult,
     branch::alt,
-    bytes::complete::{tag, take_until, take_while, take_while1},
+    bytes::complete::{tag, take_until, take_while},
     character::complete::{
-        alpha1, alphanumeric1, char, digit1,
-        line_ending, multispace0, multispace1,
-        space0, space1,
+        digit1,
+        line_ending,
     },
-    combinator::{map, opt, recognize, value},
+    combinator::{opt},
     multi::{many0, many1},
-    sequence::{pair, preceded, terminated},
+    sequence::{preceded, terminated},
     Parser,
 };
 

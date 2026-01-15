@@ -88,14 +88,7 @@ impl From<std::string::FromUtf8Error> for E2kError {
         }
     }
 }
-impl From<serde_json::Error> for E2kError {
-    fn from(err: serde_json::Error) -> Self {
-        E2kError::Serialization {
-            message: err.to_string(),
-            source: Some(Box::new(err)),
-        }
-    }
-}
+
 impl From<PanicContext> for E2kError {
     fn from(ctx: PanicContext) -> Self {
         E2kError::Other(ctx.format())

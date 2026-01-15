@@ -1,9 +1,8 @@
 use crate::parser::prelude::*;
 use crate::parser::*;
-use crate::parser::primitives::*;
 
 /// Parse point
-fn parse_point(input: &str) -> IResult<&str, Point> {
+pub fn parse_point(input: &str) -> IResult<&str, Point> {
     let (input, _) = tag("POINT").parse(input)?;
     let (input, _) = ws.parse(input)?;
     let (input, id) = quoted_string.parse(input)?;
@@ -18,7 +17,7 @@ fn parse_point(input: &str) -> IResult<&str, Point> {
 }
 
 /// Parse points section
-fn parse_points(input: &str) -> IResult<&str, Vec<Point>> {
+pub fn parse_points(input: &str) -> IResult<&str, Vec<Point>> {
     let (input, _) = skip_ws_and_comments.parse(input)?;
     let (input, _) = tag("$ POINT COORDINATES").parse(input)?;
     let (input, _) = line_ending.parse(input)?;
@@ -33,7 +32,7 @@ fn parse_points(input: &str) -> IResult<&str, Vec<Point>> {
 }
 
 /// Parse line
-fn parse_line(input: &str) -> IResult<&str, Line> {
+pub fn parse_line(input: &str) -> IResult<&str, Line> {
     let (input, _) = tag("LINE").parse(input)?;
     let (input, _) = ws.parse(input)?;
     let (input, id) = quoted_string.parse(input)?;
@@ -60,7 +59,7 @@ fn parse_line(input: &str) -> IResult<&str, Line> {
 }
 
 /// Parse lines section
-fn parse_lines(input: &str) -> IResult<&str, Vec<Line>> {
+pub fn parse_lines(input: &str) -> IResult<&str, Vec<Line>> {
     let (input, _) = skip_ws_and_comments.parse(input)?;
     let (input, _) = tag("$ LINE CONNECTIVITIES").parse(input)?;
     let (input, _) = line_ending.parse(input)?;
@@ -75,7 +74,7 @@ fn parse_lines(input: &str) -> IResult<&str, Vec<Line>> {
 }
 
 /// Parse area
-fn parse_area(input: &str) -> IResult<&str, Area> {
+pub fn parse_area(input: &str) -> IResult<&str, Area> {
     let (input, _) = tag("AREA").parse(input)?;
     let (input, _) = ws.parse(input)?;
     let (input, id) = quoted_string.parse(input)?;
@@ -97,7 +96,7 @@ fn parse_area(input: &str) -> IResult<&str, Area> {
 }
 
 /// Parse areas section
-fn parse_areas(input: &str) -> IResult<&str, Vec<Area>> {
+pub fn parse_areas(input: &str) -> IResult<&str, Vec<Area>> {
     let (input, _) = skip_ws_and_comments.parse(input)?;
     let (input, _) = tag("$ AREA CONNECTIVITIES").parse(input)?;
     let (input, _) = line_ending.parse(input)?;

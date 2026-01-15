@@ -1,7 +1,9 @@
+use crate::error::{Result};
+
+
 // ============================================================================
 // Data Structures
 // ============================================================================
-
 #[derive(Debug, Clone, PartialEq)]
 pub struct E2KModel {
     pub file_info: Option<FileInfo>,
@@ -384,4 +386,239 @@ pub struct WallDesignPreference {
 pub struct ProjectInfo {
     pub company_name: String,
     pub model_name: String,
+}
+
+
+impl E2KModel {
+    /// Get all columns from the model
+    pub fn get_columns(&self) -> Vec<&Line> {
+        self.lines.iter()
+            .filter(|line| line.line_type == "COLUMN")
+            .collect()
+    }
+
+    /// Get all beams from the model
+    pub fn get_beams(&self) -> Vec<&Line> {
+        self.lines.iter()
+            .filter(|line| line.line_type == "BEAM")
+            .collect()
+    }
+
+    /// Get all walls from the model
+    pub fn get_walls(&self) -> Vec<&Area> {
+        self.areas.iter()
+            .filter(|area| area.area_type == "PANEL")
+            .collect()
+    }
+
+    /// Get all floors/slabs from the model
+    pub fn get_floors(&self) -> Vec<&Area> {
+        self.areas.iter()
+            .filter(|area| area.area_type == "FLOOR")
+            .collect()
+    }
+
+    /// Get story by name
+    pub fn get_story(&self, name: &str) -> Option<&Story> {
+        self.stories.iter().find(|s| s.name == name)
+    }
+
+    /// Get point by id
+    pub fn get_point(&self, id: &str) -> Option<&Point> {
+        self.points.iter().find(|p| p.id == id)
+    }
+
+    /// Get material by name
+    pub fn get_material(&self, name: &str) -> Option<&Material> {
+        self.materials.iter().find(|m| m.name == name)
+    }
+
+    /// Get frame section by name
+    pub fn get_frame_section(&self, name: &str) -> Option<&FrameSection> {
+        self.frame_sections.iter().find(|s| s.name == name)
+    }
+
+    /// Get shell property by name
+    pub fn get_shell_prop(&self, name: &str) -> Option<&ShellProp> {
+        self.shell_props.iter().find(|s| s.name == name)
+    }
+
+    /// Get load pattern by name
+    pub fn get_load_pattern(&self, name: &str) -> Option<&LoadPattern> {
+        self.load_patterns.iter().find(|p| p.name == name)
+    }
+
+    /// Get load case by name
+    pub fn get_load_case(&self, name: &str) -> Option<&LoadCase> {
+        self.load_cases.iter().find(|c| c.name == name)
+    }
+
+    /// Get load combination by name
+    pub fn get_load_combination(&self, name: &str) -> Option<&LoadCombination> {
+        self.load_combinations.iter().find(|c| c.name == name)
+    }
+
+    /// Calculate total building height
+    pub fn total_height(&self) -> f64 {
+        self.stories.iter()
+            .filter_map(|s| s.height)
+            .sum()
+    }
+
+    /// Get number of stories
+    pub fn story_count(&self) -> usize {
+        self.stories.len()
+    }
+
+    /// Get building statistics
+    pub fn get_statistics(&self) -> ModelStatistics {
+        ModelStatistics {
+            num_stories: self.stories.len(),
+            num_points: self.points.len(),
+            num_lines: self.lines.len(),
+            num_areas: self.areas.len(),
+            num_columns: self.get_columns().len(),
+            num_beams: self.get_beams().len(),
+            num_walls: self.get_walls().len(),
+            num_floors: self.get_floors().len(),
+            num_materials: self.materials.len(),
+            num_load_patterns: self.load_patterns.len(),
+            num_load_cases: self.load_cases.len(),
+            num_load_combinations: self.load_combinations.len(),
+            total_height: self.total_height(),
+        }
+    }
+
+    /// Validate model integrity
+    pub fn validate(&self) -> Result<ValidationReport> {
+        let mut report = ValidationReport::new();
+
+        // Check for required sections
+        if self.stories.is_empty() {
+            report.add_error("Model has no stories defined".to_string());
+        }
+
+        if self.points.is_empty() {
+            report.add_warning("Model has no points defined".to_string());
+        }
+
+        // Validate point references in lines
+        for line in &self.lines {
+            if !self.points.iter().any(|p| p.id == line.point_i) {
+                report.add_error(format!(
+                    "Line '{}' references undefined point '{}'",
+                    line.id, line.point_i
+                ));
+            }
+            if !self.points.iter().any(|p| p.id == line.point_j) {
+                report.add_error(format!(
+                    "Line '{}' references undefined point '{}'",
+                    line.id, line.point_j
+                ));
+            }
+        }
+
+        // Validate material references in frame sections
+        for section in &self.frame_sections {
+            if !self.materials.iter().any(|m| m.name == section.material) {
+                report.add_error(format!(
+                    "Frame section '{}' references undefined material '{}'",
+                    section.name, section.material
+                ));
+            }
+        }
+
+        if report.has_errors() {
+            Err(crate::E2kError::validation(format!(
+                "Validation failed with {} errors",
+                report.error_count()
+            )))
+        } else {
+            Ok(report)
+        }
+    }
+}
+
+#[derive(Debug, Clone, PartialEq)]
+pub struct ModelStatistics {
+    pub num_stories: usize,
+    pub num_points: usize,
+    pub num_lines: usize,
+    pub num_areas: usize,
+    pub num_columns: usize,
+    pub num_beams: usize,
+    pub num_walls: usize,
+    pub num_floors: usize,
+    pub num_materials: usize,
+    pub num_load_patterns: usize,
+    pub num_load_cases: usize,
+    pub num_load_combinations: usize,
+    pub total_height: f64,
+}
+
+impl std::fmt::Display for ModelStatistics {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        writeln!(f, "Model Statistics:")?;
+        writeln!(f, "  Stories: {}", self.num_stories)?;
+        writeln!(f, "  Total Height: {:.2} ft", self.total_height)?;
+        writeln!(f, "  Points: {}", self.num_points)?;
+        writeln!(f, "  Lines: {} (Columns: {}, Beams: {})",
+                 self.num_lines, self.num_columns, self.num_beams)?;
+        writeln!(f, "  Areas: {} (Walls: {}, Floors: {})",
+                 self.num_areas, self.num_walls, self.num_floors)?;
+        writeln!(f, "  Materials: {}", self.num_materials)?;
+        writeln!(f, "  Load Patterns: {}", self.num_load_patterns)?;
+        writeln!(f, "  Load Cases: {}", self.num_load_cases)?;
+        writeln!(f, "  Load Combinations: {}", self.num_load_combinations)?;
+        Ok(())
+    }
+}
+
+#[derive(Debug, Clone)]
+pub struct ValidationReport {
+    errors: Vec<String>,
+    warnings: Vec<String>,
+}
+
+impl ValidationReport {
+    pub fn new() -> Self {
+        Self {
+            errors: Vec::new(),
+            warnings: Vec::new(),
+        }
+    }
+
+    pub fn add_error(&mut self, error: String) {
+        self.errors.push(error);
+    }
+
+    pub fn add_warning(&mut self, warning: String) {
+        self.warnings.push(warning);
+    }
+
+    pub fn has_errors(&self) -> bool {
+        !self.errors.is_empty()
+    }
+
+    pub fn error_count(&self) -> usize {
+        self.errors.len()
+    }
+
+    pub fn warning_count(&self) -> usize {
+        self.warnings.len()
+    }
+
+    pub fn errors(&self) -> &[String] {
+        &self.errors
+    }
+
+    pub fn warnings(&self) -> &[String] {
+        &self.warnings
+    }
+}
+
+impl Default for ValidationReport {
+    fn default() -> Self {
+        Self::new()
+    }
 }

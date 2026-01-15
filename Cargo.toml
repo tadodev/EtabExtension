@@ -16,7 +16,7 @@ repository = "https://github.com/tadodev/EtabExtension"
 
 [workspace.dependencies]
 # Shared dependencies across workspace members
-serde = { version = "1.0.228", features = ["derive"] }
+serde = { version = "1.0.228", features = ["derive","serde_derive"] }
 serde_json = "1.0.149"
 
 
