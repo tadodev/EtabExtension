@@ -1,0 +1,35 @@
+{
+  "compilerOptions": {
+    "target": "ES2020",
+    "useDefineForClassFields": true,
+    "lib": ["ES2020", "DOM", "DOM.Iterable"],
+    "module": "ESNext",
+    "skipLibCheck": true,
+
+    /* Bundler mode */
+    "moduleResolution": "bundler",
+    "allowImportingTsExtensions": true,
+    "resolveJsonModule": true,
+    "isolatedModules": true,
+    "noEmit": true,
+    "jsx": "react-jsx",
+
+    /* Path mapping for monorepo */
+    "baseUrl": ".",
+    "paths": {
+      "@/*": ["./src/*"],
+      "@etab-extension/shared/*": ["../../packages/shared/src/*"],
+      "@etab-extension/shared/types": ["../../packages/shared/src/types/index.ts"],
+      "@etab-extension/shared/mocks": ["../../packages/shared/src/mocks/index.ts"]
+      
+    },
+
+    /* Linting */
+    "strict": true,
+    "noUnusedLocals": true,
+    "noUnusedParameters": true,
+    "noFallthroughCasesInSwitch": true
+  },
+  "include": ["src"],
+  "references": [{ "path": "./tsconfig.node.json" }]
+}

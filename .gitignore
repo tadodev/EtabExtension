@@ -1,0 +1,23 @@
+# Rust
+target/
+**/*.rs.bk
+*.pdb
+
+# Node
+node_modules/
+dist/
+.turbo/
+.next/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Env
+.env*.local
+EOF

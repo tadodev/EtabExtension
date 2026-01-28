@@ -1,0 +1,20 @@
+{
+  "name": "etab-extension",
+  "private": true,
+  "type": "module",
+  "packageManager": "pnpm@10.28.2",
+  "engines": {
+    "node": ">=22.15"
+  },
+  "scripts": {
+    "dev": "cd crates/ext-tauri && tauri dev",
+    "build": "cd crates/ext-tauri && tauri build",
+    "storybook": "pnpm --filter desktop storybook",
+    "gen-types": "cargo test --lib",
+    "tauri": "tauri"
+  },
+  "devDependencies": {
+    "@tauri-apps/cli": "^2.9.6",
+    "cross-env": "^10.1.0"
+  }
+}
