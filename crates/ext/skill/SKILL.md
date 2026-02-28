@@ -76,6 +76,12 @@ better to check state first and plan accordingly.
 will fail when ETABS is open (`OPEN_*` states). Always confirm ETABS is closed
 before attempting these operations.
 
+**`ext switch` in ANALYZED/LOCKED states:** Switching branches is safe in
+these states — ETABS is not running and the working file is preserved in its
+branch folder unchanged. The agent should warn the user that uncommitted
+analysis results will remain on the current branch's working file, and suggest
+running `ext commit --analyze` first if they want to preserve them as a version.
+
 ---
 
 ## Standard Agent Workflow
@@ -219,7 +225,8 @@ ext etabs close --save               # save then close
 ext etabs close --no-save            # discard and close
 ext etabs status --json              # ETABS running? which file? locked?
 ext etabs validate --file model.edb  # check file validity
-ext etabs unlock                     # clear analysis lock (Phase 2 agent tool)
+ext etabs unlock                     # clear analysis lock (CLI available Phase 1;
+                                     # agent tool deferred to Phase 2 — see below)
 ext etabs recover                    # recover from ETABS crash (ORPHANED state)
 ```
 
@@ -274,6 +281,12 @@ ext config set paths.oneDriveDir "C:\Users\Jane\OneDrive\Structural\HighRise"
 ext config set paths.reportsDir "C:\Users\Jane\OneDrive\Structural\HighRise\reports"
 
 # AI provider (always written to config.local.toml — API keys are private)
+# Phase 1: only claude is supported
+ext config set ai.provider claude
+ext config set ai.model "claude-sonnet-4-6"
+ext config set ai.apiKey "sk-ant-..."
+
+# Phase 2: switch to local Ollama
 ext config set ai.provider ollama
 ext config set ai.model "qwen2.5-coder:14b"
 ext config set ai.baseUrl "http://localhost:11434/v1"
@@ -372,13 +385,57 @@ ext etabs recover
 
 ```bash
 ext status --json                    # state shows LOCKED or ANALYZED
-# Phase 2: ext etabs unlock          # clears the model lock
-# Phase 1: inform user to run: ext etabs unlock
-# [make edits, Ctrl+S, close]
+ext etabs unlock                     # clear the analysis lock
+                                     # NOTE: the `ext etabs unlock` CLI command
+                                     # is available in Phase 1 and works normally.
+                                     # The AGENT TOOL is deferred to Phase 2 —
+                                     # in Phase 1 the agent cannot call this tool
+                                     # directly. Instead, detect the LOCKED state,
+                                     # inform the user, and tell them to run:
+                                     #   ext etabs unlock
+# [make edits, Ctrl+S, close ETABS]
 ext commit "Revised post-analysis" --analyze
 ```
 
-### Scenario: Set up local AI (Ollama, private)
+### Scenario: Switch branches when model is ANALYZED or LOCKED
+
+```bash
+ext status --json                    # state shows ANALYZED or LOCKED
+
+# Switching branches is SAFE in these states — ETABS is not running.
+# The working file stays in the current branch folder untouched.
+# Recommended: commit analysis results before switching.
+ext commit "Analysis run complete" --analyze   # optional but recommended
+
+ext switch steel-columns             # safe to switch; working file preserved
+# ⚠ Leaving main with uncommitted analysis results since v3
+#   Changes preserved in main/working/model.edb
+```
+
+### Scenario: Set up Claude AI (Phase 1)
+
+```bash
+# Configure ext to use Claude
+ext config set ai.provider claude
+ext config set ai.model "claude-sonnet-4-6"
+ext config set ai.apiKey "sk-ant-..."
+
+# Start a session
+ext chat
+
+# ETABS Agent — HighRise Tower
+# Provider: claude / claude-sonnet-4-6
+# Branch: main · v3 · Modified · ETABS not running
+#
+# You> what's the state of this project?
+```
+
+### Scenario: Set up local AI (Ollama, private) — Phase 2
+
+> **Phase 1 note:** Ollama is not yet available as a backend. Use Claude
+> (see scenario above). Skip this scenario until Phase 2 ships.
+
+No data leaves the machine. No API key needed.
 
 ```bash
 # 1. Install Ollama: https://ollama.com
@@ -392,12 +449,10 @@ ext config set ai.baseUrl "http://localhost:11434/v1"
 ext chat --provider ollama
 ```
 
-No API key needed. No data leaves the machine. The model runs entirely locally.
-
 ### Scenario: Switch to cloud AI temporarily
 
 ```bash
-ext chat --provider claude --model claude-opus-4-5
+ext chat --provider claude --model claude-sonnet-4-6
 # or set permanently:
 ext config set ai.provider claude
 ext config set ai.apiKey "sk-ant-..."
@@ -436,6 +491,14 @@ cp model.edb model_v2.edb
 
 # ❌ Do not attempt to call analyze or report tools in Phase 1
 # These are Phase 2 agent tools — inform the user and give the manual command
+
+# ❌ Do not attempt to call the etabs_unlock agent tool in Phase 1
+# The CLI command `ext etabs unlock` works fine — but the agent tool is
+# Phase 2 only. Detect LOCKED state and tell the user to run the command.
+
+# ❌ Do not configure ai.provider as ollama in Phase 1 and expect it to work
+# The Ollama backend is Phase 2. Phase 1 only supports claude.
+# Setting provider = "ollama" will return a clear ProviderNotAvailable error.
 
 # ❌ Do not operate ETABS after ext etabs open
 # The agent opens ETABS for the user — it cannot click, type, or see the screen
@@ -500,18 +563,26 @@ to inform the user proactively and give the manual command.
 | `push` | `ext push` |
 | `pull` | `ext pull` |
 
-**Phase 2 — deferred (require streaming UI):**
+**Phase 2 — deferred:**
 
 | Tool | Operation | Why deferred |
 |---|---|---|
-| `analyze_version` | `ext analyze` | 2–5 min runtime needs live progress |
+| `analyze_version` | `ext analyze` | 2–5 min runtime needs live progress streaming |
 | `generate_report` | `ext report` | PDF compilation needs streaming status |
-| `etabs_unlock` | `ext etabs unlock` | Sensitive — needs careful UX review |
+| `etabs_unlock` | `ext etabs unlock` | **CLI command ships Phase 1 and works normally.** Agent tool deferred: clearing the analysis lock without an explicit streaming confirmation dialog is too risky for Phase 1 agent UX. Phase 1 agent behavior: detect `LOCKED` state → inform user → provide the exact command to run manually: `ext etabs unlock` |
 
 For Phase 2 tools, respond with:
 ```
 I can't run this directly yet, but you can run it manually:
   ext analyze v3
+```
+
+For `etabs_unlock` specifically in Phase 1:
+```
+The model is currently locked after analysis. I can't unlock it directly yet,
+but you can run this command to clear the lock:
+  ext etabs unlock
+After that, make your edits in ETABS, save, close, and commit with --analyze.
 ```
 
 ---
@@ -520,6 +591,10 @@ I can't run this directly yet, but you can run it manually:
 
 - **ETABS must be closed** before: `ext commit`, `ext switch`, `ext checkout`,
   `ext stash`, `ext pull`
+- **`ext switch` is safe** in `ANALYZED` and `LOCKED` states — ETABS is not
+  running in either state. The departure warning still applies.
+- **`ext analyze vN` never touches the working file** — it operates on the
+  committed snapshot `vN/model.edb`. This is why it works even in `MISSING` state.
 - **`--analyze` is expensive** — ETABS opens hidden, runs full analysis,
   extracts all Parquet results. Typical duration: 2–5 minutes. Only use
   when analysis results are explicitly needed.
@@ -533,7 +608,11 @@ I can't run this directly yet, but you can run it manually:
   are completely independent versions.
 - **The agent cannot operate ETABS** — it can open and close ETABS but
   cannot interact with the ETABS user interface in any way.
-- **Phase 2 tools are not available in Phase 1** — `analyze`, `report`,
-  `etabs_unlock`. Inform the user and give the manual command.
-- **Local provider is recommended for sensitive projects** — use Ollama
-  (`ai.provider = "ollama"`) so no project data leaves the machine.
+- **Phase 2 tools are not available in Phase 1** — `analyze_version`,
+  `generate_report`, `etabs_unlock` (agent tool). Inform the user and
+  give the manual command.
+- **Phase 1 only supports Claude** — `ai.provider = "ollama"` or `"openai"`
+  will fail with `ProviderNotAvailable`. Inform the user to use Claude for
+  Phase 1, or wait for Phase 2 for local providers.
+- **Local provider is recommended for sensitive projects (Phase 2)** — use
+  `ai.provider = "ollama"` so no project data leaves the machine.

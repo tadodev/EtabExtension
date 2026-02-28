@@ -49,8 +49,8 @@ Run this before every command that needs state. Runs in milliseconds — no hash
 **Sequence:**
 1. Validate `--edb` path exists and is `.edb`
 2. Check if `--path` or `--edb` is inside a OneDrive-synced folder:
-    - Detect OneDrive paths: ancestors containing `OneDrive`, `OneDrive - `, `SharePoint`
-    - If detected: warn + prompt `[c] Continue anyway / [x] Cancel`
+   - Detect OneDrive paths: ancestors containing `OneDrive`, `OneDrive - `, `SharePoint`
+   - If detected: warn + prompt `[c] Continue anyway / [x] Cancel`
 3. Create `.etabs-ext/` and `main/working/`
 4. Atomic copy: `--edb` → `main/working/model.edb`
 5. `git init`, `git config core.autocrlf false`, set user.name/email
@@ -81,8 +81,8 @@ Run this before every command that needs state. Runs in milliseconds — no hash
 5. Create `vN/` directory
 6. Atomic copy: `working/model.edb` → `vN/model.edb.tmp` → rename
 7. Sidecar `save-snapshot --file vN/model.edb --output-dir vN/`
-    - stderr progress forwarded to terminal
-    - exports `vN/model.e2k`, extracts `vN/materials/takeoff.parquet`
+   - stderr progress forwarded to terminal
+   - exports `vN/model.e2k`, extracts `vN/materials/takeoff.parquet`
 8. Write `vN/manifest.json` `{ id, branch, message, author, timestamp, parent, isAnalyzed: false }`
 9. `git add vN/model.e2k vN/manifest.json`
 10. `git commit -m "<message>"`
@@ -116,7 +116,7 @@ Run this before every command that needs state. Runs in milliseconds — no hash
 
 **Sequence:**
 1. ETABS running? → hard stop: `✗ Close ETABS before switching branches`
-2. If current branch state is `MODIFIED` or `UNTRACKED`: warn (do NOT block)
+2. If current branch state is `MODIFIED`, `UNTRACKED`, `ANALYZED`, or `LOCKED`: warn (do NOT block)
    ```
    ⚠ Leaving <branch> with uncommitted changes since <version>
      Changes preserved in <branch>/working/model.edb
@@ -124,11 +124,11 @@ Run this before every command that needs state. Runs in milliseconds — no hash
 3. Update `state.json` `{ currentBranch: <target> }`
 4. Resolve target working file state (mtime check on target branch's working file)
 5. Report:
-    - `CLEAN` → `✓ Switched to: <branch>` (silent)
-    - `MODIFIED` → warn
-    - `UNTRACKED` → warn: no commits yet
-    - `MISSING` → warn: `Run: ext checkout vN`
-    - `ORPHANED` → warn: `Run: ext etabs recover`
+   - `CLEAN` → `✓ Switched to: <branch>` (silent)
+   - `MODIFIED` → warn
+   - `UNTRACKED` → warn: no commits yet
+   - `MISSING` → warn: `Run: ext checkout vN`
+   - `ORPHANED` → warn: `Run: ext etabs recover`
 
 **Postcondition:** `currentBranch` = target. Working files unchanged.
 
@@ -162,7 +162,7 @@ Run this before every command that needs state. Runs in milliseconds — no hash
 1. ETABS running? → hard stop
 2. Resolve `v2` → `<currentBranch>/v2/model.edb`
 3. Does `v2/model.edb` exist?
-    - NO → `✗ Snapshot missing. Available: v1, v3, v4`
+   - NO → `✗ Snapshot missing. Available: v1, v3, v4`
 4. If working file `MODIFIED` or `UNTRACKED` → prompt:
    ```
    [c] Commit current changes first, then checkout
@@ -170,10 +170,10 @@ Run this before every command that needs state. Runs in milliseconds — no hash
    [d] Discard changes and checkout v2
    [x] Cancel
    ```
-    - `[c]`: run full commit flow (prompt for message), then proceed
-    - `[s]`: run stash save, then proceed
-    - `[d]`: proceed directly
-    - `[x]`: exit
+   - `[c]`: run full commit flow (prompt for message), then proceed
+   - `[s]`: run stash save, then proceed
+   - `[d]`: proceed directly
+   - `[x]`: exit
 5. Atomic copy: `v2/model.edb` → `working/model.edb.tmp` → rename
 6. Update `state.json` `{ basedOnVersion: v2, status: CLEAN, lastKnownMtime: now }`
 
@@ -247,8 +247,8 @@ Run this before every command that needs state. Runs in milliseconds — no hash
 **Sequence:**
 1. ETABS running? → `✗ ETABS is already running (PID: <n>). Close it first.`
 2. Resolve target file:
-    - No argument → `<currentBranch>/working/model.edb`
-    - Version argument → `<branch>/vN/model.edb` + warn: read-only recommended
+   - No argument → `<currentBranch>/working/model.edb`
+   - Version argument → `<branch>/vN/model.edb` + warn: read-only recommended
 3. Sidecar: `open-model --file <path>` (visible window)
 4. Update `state.json` `{ etabs: { pid, openFile }, workingFile.status: OPEN_CLEAN }`
 
@@ -263,7 +263,7 @@ Run this before every command that needs state. Runs in milliseconds — no hash
 **Sequence:**
 1. ETABS not running? → error
 2. Sidecar: `unlock-model --file <working-file>`
-    - Calls `SapModel.SetModelIsLocked(false)`
+   - Calls `SapModel.SetModelIsLocked(false)`
 3. Update `state.json` `{ workingFile.status: OPEN_CLEAN }`
 
 **Note:** Extracted Parquet files in `vN/results/` are unaffected. Only the lock inside the `.edb` is cleared.
@@ -304,10 +304,10 @@ Run this before every command that needs state. Runs in milliseconds — no hash
      Your message:   "Increased column sizes"
      [r] Rename yours to v5 and push  [v] View diff  [x] Cancel
    ```
-    - `[r]`: rename local `v4` folder to `v5`, update `manifest.json id`, re-commit manifest
+   - `[r]`: rename local `v4` folder to `v5`, update `manifest.json id`, re-commit manifest
 4. `git bundle create OneDrive/git-bundle --all`
 5. For each version not in remote (compare `project.json`):
-    - Atomic copy with progress: `vN/model.edb → OneDrive/edb/<branch>-vN.edb`
+   - Atomic copy with progress: `vN/model.edb → OneDrive/edb/<branch>-vN.edb`
 6. If `--include-working`: copy `working/model.edb → OneDrive/edb/<branch>-working.edb`
 7. Write/update `OneDrive/project.json`
 
@@ -340,7 +340,11 @@ Run this before every command that needs state. Runs in milliseconds — no hash
 3. `git clone --local OneDrive/git-bundle .etabs-ext/` → restores all text files including `config.toml`
 4. Copy all `.edb` files from `OneDrive/edb/`
 5. Interactive prompts for machine-specific settings
-6. Write `config.local.toml`
+6. Write `config.local.toml` — if one already exists at the target path, prompt:
+   ```
+   ⚠ config.local.toml already exists at this path.
+     [k] Keep existing  [o] Overwrite with wizard output  [x] Cancel
+   ```
 7. Set working file to latest version of main
 8. Write `state.json { status: CLEAN, basedOn: latest }`
 
@@ -355,7 +359,7 @@ Run this before every command that needs state. Runs in milliseconds — no hash
 | `ext commit` | ✓ | ✓* | ✓ | ✗ | ✗ | warn | warn | ✗ | ✗ |
 | `ext commit --analyze` | ✓ | ✓ | ✓ | ✗ | ✗ | ✓ | ✗ | ✗ | ✗ |
 | `ext analyze vN` | ✓ | ✓ | ✓ | ✗ | ✗ | ✓ | ✗ | ✓ | ✗ |
-| `ext switch` | ✓ | ✓ | warn | ✗ | ✗ | ✗ | ✗ | warn | ✗ |
+| `ext switch` | ✓ | ✓ | warn | ✗ | ✗ | warn | warn | warn | ✗ |
 | `ext checkout` | ✓ | ✓ | prompt | ✗ | ✗ | ✗ | ✗ | ✓ | ✗ |
 | `ext stash` | ✗ | ✗ | ✓ | ✗ | ✗ | ✗ | ✗ | ✗ | ✗ |
 | `ext stash pop` | ✗ | ✓ | prompt | ✗ | ✗ | ✗ | ✗ | ✓ | ✗ |
@@ -368,6 +372,28 @@ Run this before every command that needs state. Runs in milliseconds — no hash
 | `ext report` | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ |
 
 Legend: `✓` allowed, `✗` blocked with error, `warn` allowed with warning, `prompt` prompts user, `*` allowed but no diff (no e2k change if model unchanged)
+
+> **Implementation note — `ext switch` in ANALYZED/LOCKED states:** Both states
+> mean ETABS is closed with results embedded in the working file. There is no
+> active ETABS process, so switching branches is safe — the working file stays
+> untouched in its branch folder exactly as with `MODIFIED`. Use the same
+> departure warning: "Leaving `<branch>` with uncommitted changes since
+> `<version>`." The engineer should run `ext commit --analyze` before switching
+> if they want to preserve the analysis results as a committed version.
+
+> **Implementation note — `ext analyze vN`:** This command operates exclusively
+> on the committed snapshot `vN/model.edb`, never on `working/model.edb`. The
+> state guard must only verify that the target snapshot file exists. Do **not**
+> add a working-file existence check — that is why `MISSING` is `✓` in this row.
+> Implement the guard as:
+> ```rust
+> // ✅ Correct guard for ext analyze
+> let snapshot = ctx.project.branch_path().join(version).join("model.edb");
+> if !snapshot.exists() {
+>     bail!("✗ Snapshot missing: {version}\n  Available: {}", list_versions(ctx)?);
+> }
+> // Do NOT check working/model.edb here
+> ```
 
 ---
 
@@ -417,7 +443,7 @@ pub fn sidecar_path(&self) -> &str {
 }
 ```
 
-`config.local.toml` is never pushed to OneDrive and never overwritten by `ext pull` or `ext clone` (clone creates it fresh via wizard).
+`config.local.toml` is never pushed to OneDrive and never overwritten by `ext pull` or `ext clone` (clone creates it fresh via wizard, or keeps existing with prompt — see §14).
 
 ---
 
@@ -425,13 +451,13 @@ pub fn sidecar_path(&self) -> &str {
 
 ```rust
 fn is_onedrive_path(path: &Path) -> bool {
-    let markers = ["OneDrive", "OneDrive - ", "SharePoint"];
-    path.ancestors().any(|p| {
-        p.file_name()
-            .and_then(|n| n.to_str())
-            .map(|n| markers.iter().any(|m| n.starts_with(m)))
-            .unwrap_or(false)
-    })
+   let markers = ["OneDrive", "OneDrive - ", "SharePoint"];
+   path.ancestors().any(|p| {
+      p.file_name()
+              .and_then(|n| n.to_str())
+              .map(|n| markers.iter().any(|m| n.starts_with(m)))
+              .unwrap_or(false)
+   })
 }
 ```
 
@@ -447,10 +473,10 @@ All `.edb` copies use write-to-temp-then-rename to prevent partial writes:
 
 ```rust
 fn atomic_copy(src: &Path, dst: &Path) -> Result<()> {
-    let tmp = dst.with_extension("edb.tmp");
-    fs::copy(src, &tmp)?;
-    fs::rename(&tmp, dst)?;   // atomic on same filesystem
-    Ok(())
+   let tmp = dst.with_extension("edb.tmp");
+   fs::copy(src, &tmp)?;
+   fs::rename(&tmp, dst)?;   // atomic on same filesystem
+   Ok(())
 }
 ```
 

@@ -11,8 +11,9 @@ data, client information, and commercially sensitive material. The AI layer
 is designed so that model data never leaves the user's machine unless they
 explicitly configure a cloud provider.
 
-**Local by default.** Ollama with a locally-running model is the recommended
-default. No API key, no network traffic, no data sent to third parties.
+**Local by default (Phase 2).** Ollama with a locally-running model is the
+recommended default once Phase 2 ships. In Phase 1, the only implemented
+backend is Claude — see Provider Backends below.
 
 **Provider-agnostic.** The agent logic is written once against a trait.
 Switching from Ollama to Claude to OpenAI is a one-line config change.
@@ -72,9 +73,9 @@ ext-agent/src/
   tools/
     mod.rs            ToolRegistry: definition + dispatch table
     read.rs           status, log, branch, show, diff, etabs_status, remote_status
-    write.rs          commit, checkout, switch, branch_create, push, pull,
-                      etabs_open, etabs_close, etabs_recover, etabs_unlock,
-                      analyze, report (Phase 2)
+    write.rs          commit, checkout, switch, branch_create, stash_save, stash_pop,
+                      etabs_open, etabs_close, etabs_recover, push, pull
+                      (Phase 2: analyze, report, etabs_unlock)
   context.rs          system prompt: SKILL.md + live project status JSON
   confirmation.rs     [y/n] gate for write tools; Tauri event gate
   history.rs          Vec<Message> in-memory per session
@@ -84,6 +85,28 @@ ext-agent/src/
 ---
 
 ## Provider Backends
+
+> **Phase 1:** Only the Claude backend is implemented in Phase 1. Ollama and
+> OpenAI-compatible backends ship in Phase 2. The default provider for Phase 1
+> is `"claude"`. The default changes to `"ollama"` when Phase 2 ships.
+> The `from_config()` function must return a clear, actionable error if the
+> user configures a provider that is not yet compiled in — never silently fall
+> back to a non-working provider.
+
+```rust
+// ext-agent-llm/src/lib.rs
+pub fn from_config(config: &Config) -> Result<Box<dyn LlmClient>, LlmError> {
+    match config.ai_provider() {
+        "claude" => Ok(Box::new(ClaudeClient::new(config)?)),
+        "ollama" | "openai" => Err(LlmError::ProviderNotAvailable {
+            provider: config.ai_provider().to_owned(),
+            hint: "This provider is available in Phase 2. \
+                   Use: ext config set ai.provider claude".into(),
+        }),
+        other => Err(LlmError::UnknownProvider(other.to_owned())),
+    }
+}
+```
 
 ### Phase 1: Claude (cloud, direct HTTP)
 
@@ -98,7 +121,7 @@ Body: { model, max_tokens, system, messages, tools, stream }
 
 Use when: internet is available, privacy is acceptable, best reasoning needed.
 
-### Phase 2: Ollama (local, private — recommended default)
+### Phase 2: Ollama (local, private — recommended default from Phase 2 onward)
 
 Runs entirely on the user's machine. No data leaves. No API key.
 Uses the OpenAI-compatible endpoint that Ollama exposes.
@@ -156,10 +179,10 @@ never appear there.
 ```toml
 # config.local.toml — full AI section
 [ai]
-provider    = "ollama"              # "ollama" | "claude" | "openai"
-model       = "qwen2.5-coder:14b"  # model name for the chosen provider
+provider    = "claude"              # Phase 1 default; changes to "ollama" in Phase 2
+model       = "claude-sonnet-4-6"  # model name for the chosen provider
 apiKey      = ""                    # required for claude and openai; empty for ollama
-baseUrl     = "http://localhost:11434/v1"  # ollama default; change for other endpoints
+baseUrl     = ""                    # leave empty for claude; set for ollama/openai
 autoConfirm = false                 # true skips [y/n] prompts (use carefully)
 maxTokens   = 4096                  # response token limit
 ```
@@ -167,10 +190,14 @@ maxTokens   = 4096                  # response token limit
 Set via the standard config command (automatically routes to `config.local.toml`):
 
 ```bash
+ext config set ai.provider claude
+ext config set ai.model "claude-sonnet-4-6"
+ext config set ai.apiKey "sk-ant-..."
+
+# Phase 2: switch to local
 ext config set ai.provider ollama
 ext config set ai.model "qwen2.5-coder:14b"
 ext config set ai.baseUrl "http://localhost:11434/v1"
-ext config set ai.apiKey "sk-ant-..."   # only for cloud providers
 ```
 
 ---
@@ -185,15 +212,14 @@ context, and loops until the user exits.
 ```bash
 ext chat                           # start session (uses config ai.provider)
 ext chat --provider claude         # override provider for this session
-ext chat --provider ollama --model qwen2.5-coder:14b
 ext chat --no-confirm              # skip [y/n] prompts (caution: executes immediately)
 ```
 
-Session header shows current state so the user knows the agent's context:
+**Phase 1 session header:**
 
 ```
 ETABS Agent — HighRise Tower
-Provider: ollama / qwen2.5-coder:14b (local)
+Provider: claude / claude-sonnet-4-6
 Branch: main · v3 · Modified · ETABS not running
 Type your question or instruction. Ctrl+C to exit.
 
@@ -203,9 +229,21 @@ You>
 ### Phase 2 additions
 
 ```bash
+ext chat --provider ollama --model qwen2.5-coder:14b
 ext chat --resume                  # load last saved session for this project/branch
 ext chat --clear-history           # wipe saved session history
 ext chat --non-interactive         # read from stdin, write to stdout (for scripting)
+```
+
+**Phase 2 session header (Ollama):**
+
+```
+ETABS Agent — HighRise Tower
+Provider: ollama / qwen2.5-coder:14b  ●  local — no data leaves your machine
+Branch: main · v3 · Modified · ETABS not running
+Type your question or instruction. Ctrl+C to exit.
+
+You>
 ```
 
 Non-interactive mode allows piping:
@@ -281,6 +319,39 @@ already knows it before the first message.
 
 ---
 
+## Default Provider and Local-First Policy
+
+**Phase 1:** When `ai.provider` is not set, default to `"claude"` and prompt
+for an API key. Do not reference Ollama as available — the backend is not
+implemented yet. The startup message must be honest about what is available:
+
+```text
+⚠ No AI provider configured.
+  Defaulting to Claude (cloud). An API key is required.
+  Run: ext config set ai.provider claude
+       ext config set ai.apiKey "sk-ant-..."
+
+  For a local provider (no API key), Ollama support is coming in Phase 2.
+```
+
+**Phase 2:** When `ai.provider` is not set, default to `"ollama"` and show
+the local-first message:
+
+```text
+⚠ No AI provider configured.
+  Using Ollama (local) — no data leaves your machine.
+  Make sure Ollama is running: https://ollama.com
+  Run: ext config set ai.model "qwen2.5-coder:14b"
+
+  To use Claude instead: ext config set ai.provider claude
+                         ext config set ai.apiKey "sk-ant-..."
+```
+
+The switch from Phase 1 default to Phase 2 default is a one-line change in
+`from_config()` — no other code changes required.
+
+---
+
 ## Privacy Guarantees
 
 | Data | Sent to cloud provider? |
@@ -293,11 +364,11 @@ already knows it before the first message.
 | `config.local.toml` contents | **Never** — not included in context |
 | API key | **Never** — used only for auth header, never in prompt |
 
-With Ollama or LM Studio: nothing leaves the machine. Ever.
+With Ollama or LM Studio (Phase 2): nothing leaves the machine. Ever.
 
-**Recommendation for sensitive projects:** Use `ai.provider = "ollama"`.
-The capability difference for project management tasks (status, commit,
-branch, log) is minimal compared to a cloud model.
+**Recommendation for sensitive projects:** Use `ai.provider = "ollama"` once
+Phase 2 ships. The capability difference for project management tasks (status,
+commit, branch, log) is minimal compared to a cloud model.
 
 ---
 
@@ -336,7 +407,8 @@ branch, log) is minimal compared to a cloud model.
 - `ext-agent-llm`: `LlmClient` trait + Claude backend only
 - `ext-agent`: all read tools + write tools (with confirmation gate)
 - `ext chat` CLI subcommand (interactive REPL, rustyline)
-- Ollama support stubbed in config but backend not yet implemented
+- Default provider: `"claude"` — Ollama config keys accepted in
+  `config.local.toml` but backend returns `ProviderNotAvailable` error
 
 Tools available in Phase 1:
 ```
@@ -345,15 +417,23 @@ READ:   project_status, list_versions, show_version, list_branches,
 WRITE:  commit_version, create_branch, switch_branch, checkout_version,
         stash_save, stash_pop, etabs_open, etabs_close, etabs_recover,
         push, pull
-DEFER:  analyze_version, generate_report, etabs_unlock
+DEFER:  analyze_version, generate_report
         (deferred: need streaming UI before exposing 2–5 min operations)
+        etabs_unlock
+        (CLI command `ext etabs unlock` ships in Phase 1 and works normally.
+         The AGENT TOOL is deferred: calling unlock without a streaming
+         confirmation dialog is too risky. Phase 1 agent behavior — detect
+         LOCKED state, inform the user, and provide the exact command to run:
+         `ext etabs unlock`)
 ```
 
 ### Phase 2
 
 - `ext-agent-llm`: Ollama + OpenAI-compat backend via `async-openai`
+- Default provider switches from `"claude"` to `"ollama"`
 - Streaming responses (`chat_streaming`) for long-running tools
 - `analyze_version` and `generate_report` tools unlocked
+- `etabs_unlock` agent tool unlocked — with streaming confirmation dialog
 - Tauri streaming chat panel
 - Post-tool suggestions (`suggestion.rs`)
 - `ext chat --resume` / `--clear-history` (session persistence in ext-db)
